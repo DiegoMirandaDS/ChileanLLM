@@ -1,0 +1,5 @@
+source,mixture_fraction,target_tokens,target_tokens_millions,mean_tokens_per_document,estimated_documents
+mc4,0.45,135000000,135.0,834.983693,161680
+twitter,0.35,105000000,105.0,27.057896,3880568
+news,0.19,57000000,57.0,472.25053,120699
+complaints,0.01,3000000,3.0,140.337007,21377

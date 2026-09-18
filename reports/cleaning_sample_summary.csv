@@ -1,0 +1,5 @@
+source,original_documents,invalid_removed,duplicates_removed,kept_documents,retention_rate,pct_ftfy_changed,pct_html_removed,pct_url_replaced,pct_user_replaced,pct_email_redacted,pct_rut_redacted,pct_phone_redacted
+complaints,5000,2,7,4991,0.9982,0.0004,0.0,0.0066,0.0006,0.017,0.0,0.0188
+mc4,20000,8,0,19992,0.9996,0.03445,0.026,0.1458,0.02855,0.0344,0.0025,0.02075
+news,10000,1,92,9907,0.9907,0.0034,0.0008,0.0248,0.0666,0.0021,0.0008,0.0004
+twitter,20000,0,603,19397,0.96985,0.0,0.0,0.36065,0.4649,0.0006,5e-05,0.00135
