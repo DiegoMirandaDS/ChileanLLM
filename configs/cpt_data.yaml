@@ -4,7 +4,7 @@ dataset:
   streaming: true
 
 model:
-  name: Qwen/Qwen2.5-0.5B
+  name: Qwen/Qwen3-0.6B-Base
 
 seed: 42
 
@@ -18,7 +18,28 @@ training_corpus:
     complaints: 0.01
 
 pilot:
-  target_tokens: 50000000
+  max_train_tokens: 12000000
+  max_runtime_minutes: 105
+
+training:
+  sequence_length: 1024
+
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 8
+
+  learning_rate: 2.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.03
+  lr_scheduler_type: cosine
+
+  optimizer: adamw_bnb_8bit
+
+  gradient_checkpointing: true
+
+  fp16: true
+
+smoke_test:
+  target_tokens: 262144
 
 sources:
   mc4:

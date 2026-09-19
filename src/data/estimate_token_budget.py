@@ -4,7 +4,7 @@ import pandas as pd
 from transformers import AutoTokenizer
 
 
-MODEL_NAME = "Qwen/Qwen2.5-0.5B"
+MODEL_NAME = "Qwen/Qwen3-0.6B-Base"
 
 INPUT_PATH = Path(
     "data/processed/sample_clean.parquet"

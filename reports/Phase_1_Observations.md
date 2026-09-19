@@ -254,6 +254,58 @@ Complaints     3M
 
 ---
 
+## 13. Base model reevaluation before CPT
+
+Before starting Phase 2, the original base model
+`Qwen/Qwen2.5-0.5B` was reevaluated against more recent
+small base models.
+
+The project base model was updated to:
+
+`Qwen/Qwen3-0.6B-Base`
+
+The motivation was to use a more recent architecture while
+remaining within the compute constraints of local full-parameter
+continual pre-training.
+
+Because changing the base model could affect tokenization and
+corpus-size estimates, all tokenizer-dependent Phase 1 analyses
+were repeated.
+
+### Qwen3 tokenizer results
+
+| Source     | Mean tokens / word |
+| ---------- | -----------------: |
+| Complaints | 1.525 |
+| News       | 1.653 |
+| mC4        | 1.922 |
+| Twitter    | 2.598 |
+
+For Twitter, after neutralizing URLs, mentions and hashtags:
+
+| Group | Tokens / word |
+| ----- | ------------: |
+| Chilean markers | 1.948 |
+| No markers | 2.086 |
+
+The same qualitative conclusion holds: Chilean-associated lexical
+markers are not responsible for Twitter's higher token fragmentation.
+
+### Revised corpus token estimate
+
+The cleaned corpus remains estimated at approximately:
+
+`8.49B Qwen3 tokens`
+
+The resulting token distribution and CPT mixture remain effectively
+unchanged.
+
+Therefore the Phase 1 decisions remain valid:
+
+- retain the original Qwen3 tokenizer,
+- use the 45/35/19/1 token mixture,
+- run a 50M-token CPT pilot before the main experiment.
+
 ## Phase 1 conclusion
 
 Phase 1 established three main principles for the project:
