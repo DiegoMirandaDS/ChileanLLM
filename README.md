@@ -1,240 +1,151 @@
-# ChileanLM Lab
+# ChileanLLM
 
-Continual pre-training experiments for adapting a base language model to Chilean Spanish using a multi-domain corpus.
+Continual pre-training experiments for adapting a small base language model to Chilean Spanish using a multi-domain corpus.
 
-The project studies how Chilean web text, social media, news, and user-generated complaints differ in quality, linguistic characteristics, tokenization behavior, and training volume before performing continual pre-training (CPT).
+The project studies the full adaptation pipeline around `Qwen3-0.6B-Base`: corpus analysis, data cleaning, tokenization, training-data design, continual pre-training and evaluation.
 
-## Project Goal
+It is primarily an experimental and learning project. The objective is to build the pipeline carefully, understand the decisions involved in LLM adaptation, and test whether a relatively small CPT run can produce measurable improvements on Chilean Spanish.
 
-The main goal is to evaluate whether continual pre-training can improve the modeling of Chilean Spanish while preserving exposure to both informal and formal registers.
+**Base model:** `Qwen/Qwen3-0.6B-Base`  
+**Dataset:** `jorgeortizfuentes/chilean-spanish-corpus`  
+**Framework:** PyTorch + Hugging Face  
+**Environment:** Linux / WSL2 + NVIDIA CUDA
 
-The project starts from:
+---
 
-* **Base model:** `Qwen/Qwen2.5-0.5B`
-* **Dataset:** `jorgeortizfuentes/chilean-spanish-corpus`
-* **Framework:** PyTorch + Hugging Face
-* **Environment:** Linux / WSL2
+## Current Status
 
-The planned experimental comparison is:
+Phase 1 is complete. The project is currently moving into the continual pre-training stage.
+
+No CPT results are reported yet; training and Base-vs-CPT evaluation are still in progress.
 
 ```text
-Qwen2.5-0.5B Base
-        ↓
-Continual Pre-Training
-        ↓
-Chilean-Qwen CPT
-        ↓
-Evaluation
+Data and corpus
+[x] Corpus inspection
+[x] Stratified EDA
+[x] Data-quality analysis
+[x] PII-aware cleaning
+[x] Exact deduplication
+[x] Chilean lexical analysis
+[x] Tokenizer analysis
+[x] Token-budget estimation
+[x] CPT mixture design
+[x] Base-model reevaluation
+
+Training and evaluation
+[~] Streaming CPT dataset
+[~] Sequence packing
+[ ] Base perplexity baseline
+[ ] GPU smoke test
+[ ] Continual pre-training
+[ ] Base vs CPT evaluation
+[ ] Post-training
 ```
 
-Later stages will compare the base and adapted models using language-modeling metrics and Chilean Spanish evaluation data.
+---
+
+## Technical Scope
+
+The project develops practical experience with:
+
+- continual pre-training of causal language models;
+- PyTorch and Hugging Face Transformers;
+- Hugging Face streaming datasets;
+- NLP preprocessing and data-quality analysis;
+- PII-aware text processing;
+- dataset deduplication;
+- tokenizer analysis;
+- token-level dataset mixtures;
+- sequence packing;
+- language-model loss and perplexity;
+- GPU memory-constrained training;
+- mixed precision and gradient accumulation;
+- gradient checkpointing;
+- 8-bit optimizers with bitsandbytes;
+- experiment configuration and reproducibility.
+
+### Technologies
+
+| Area | Technologies |
+|---|---|
+| Language / ML | Python, PyTorch, Transformers |
+| Data | Hugging Face Datasets, pandas, PyArrow, Parquet |
+| Text processing | regex, ftfy, xxHash |
+| Training | CUDA, FP16, bitsandbytes |
+| Evaluation | cross-entropy, perplexity |
+| Experimentation | YAML configs, Git, W&B planned |
+| Environment | Ubuntu / WSL2, RTX 3070 8 GB |
 
 ---
 
 ## Dataset
 
-The Chilean Spanish Corpus contains approximately 37 million documents from four domains:
+The project uses the gated `jorgeortizfuentes/chilean-spanish-corpus`, containing approximately 37 million documents.
 
-| Source     |  Documents |
-| ---------- | ---------: |
-| Twitter    | 27,306,583 |
-| mC4 `.cl`  |  8,706,681 |
-| News       |  1,081,542 |
-| Complaints |     31,219 |
+| Source | Documents |
+|---|---:|
+| Twitter | 27.31M |
+| mC4 `.cl` | 8.71M |
+| News | 1.08M |
+| Complaints | 31K |
 
-Although Twitter dominates by document count, document lengths vary substantially between sources.
+A controlled 55K-document sample was built for exploratory analysis:
 
-This makes document proportions misleading for pre-training. The effective training distribution must instead be analyzed in terms of **tokens**.
+| Source | Documents |
+|---|---:|
+| Twitter | 20,000 |
+| mC4 | 20,000 |
+| News | 10,000 |
+| Complaints | 5,000 |
+
+The sample is intentionally stratified rather than representative of the natural corpus distribution. It was designed to compare the quality and linguistic characteristics of each source.
 
 ---
 
-## Phase 1 — Data Analysis and Preparation
+## Phase 1 — Data Preparation
 
-Phase 1 focuses on understanding and preparing the corpus before training.
+**Status: complete**
 
-The pipeline includes:
+Phase 1 focused on understanding the corpus before training.
+
+The main work included:
+
+- source-level corpus profiling;
+- data-quality auditing;
+- Chilean lexical-marker analysis;
+- encoding and mojibake inspection;
+- conservative text cleaning;
+- PII detection and replacement;
+- exact deduplication;
+- tokenizer analysis;
+- corpus token-budget estimation;
+- CPT mixture design.
+
+### Cleaning
+
+The cleaning policy tries to remove technical noise without normalizing away useful linguistic variation.
+
+Preserved:
+
+- Chilean slang and voseo;
+- informal spelling;
+- accents and capitalization;
+- emojis and hashtags;
+- short social-media text.
+
+Replaced or repaired:
 
 ```text
-Hugging Face dataset
-        ↓
-Streaming inspection
-        ↓
-Stratified EDA sample
-        ↓
-Quality profiling
-        ↓
-Chilean lexical analysis
-        ↓
-Tokenizer analysis
-        ↓
-Encoding repair
-        ↓
-PII anonymization
-        ↓
-Deduplication
-        ↓
-Clean corpus estimation
-        ↓
-CPT mixture design
+URLs       -> <URL>
+mentions   -> <USER>
+emails     -> <EMAIL>
+RUT        -> <RUT>
+phones     -> <PHONE>
 ```
 
----
+HTML fragments, excessive whitespace and encoding corruption are also handled.
 
-## Exploratory Dataset Sample
-
-A controlled 55,000-document sample was constructed for EDA:
-
-| Source     | Documents |
-| ---------- | --------: |
-| Twitter    |    20,000 |
-| mC4        |    20,000 |
-| News       |    10,000 |
-| Complaints |     5,000 |
-
-The sample is intentionally not representative of the natural corpus distribution. Minority domains were oversampled to enable meaningful quality analysis.
-
----
-
-## Domain Characteristics
-
-The initial profiling showed substantial differences between sources.
-
-| Source     | Median words | Mean words |
-| ---------- | -----------: | ---------: |
-| Twitter    |           12 |       14.0 |
-| Complaints |           64 |       91.3 |
-| News       |          240 |      288.7 |
-| mC4        |        297.5 |      453.9 |
-
-Twitter is therefore extremely short relative to the other domains.
-
-Additional findings included:
-
-* Twitter contained high rates of URLs and user mentions.
-* mC4 contained web artifacts, HTML, and encoding corruption.
-* News contained measurable exact duplication.
-* Complaints contained user-generated natural language and required additional PII inspection.
-
----
-
-## Chilean Spanish Analysis
-
-Rather than using a single binary definition of "Chilean text", lexical markers were grouped into exploratory categories:
-
-* discourse markers
-* `cachai` family
-* Chilean voseo
-* slang
-* `weón` family
-* Chilean internet abbreviations
-* multi-word expressions
-
-These markers are treated only as **Chilean-associated lexical signals**, not as a classifier of text nationality or dialect.
-
-The analysis showed that Twitter had substantially higher marker density for several informal categories, including:
-
-* `weón` family
-* internet abbreviations
-* slang
-* discourse markers
-
-This supports keeping Twitter as an important part of the CPT mixture despite its relatively low token volume.
-
----
-
-## Tokenizer Analysis
-
-The Qwen2.5 tokenizer was evaluated before training.
-
-Average tokens per word:
-
-| Source     | Tokens / word |
-| ---------- | ------------: |
-| Complaints |          1.53 |
-| News       |          1.65 |
-| mC4        |          1.92 |
-| Twitter    |          2.60 |
-
-Twitter showed considerably higher fragmentation.
-
-However, a controlled experiment comparing tweets **with** and **without** Chilean-associated lexical markers produced a different result.
-
-After replacing URLs, mentions, and hashtags with neutral placeholders:
-
-| Twitter group   | Mean tokens / word |
-| --------------- | -----------------: |
-| Chilean markers |               1.95 |
-| No markers      |               2.09 |
-
-This suggests that Chilean lexical items themselves are not the main source of Twitter tokenization inefficiency.
-
-Instead, fragmentation appears to be influenced by the structural and orthographic characteristics of social-media text.
-
-The tokenizer will therefore remain unchanged during CPT.
-
----
-
-## Data Cleaning Strategy
-
-Cleaning is intentionally conservative.
-
-The objective is to remove technical noise without normalizing away dialectal information.
-
-### Preserved
-
-* Chilean slang
-* voseo
-* spelling variation
-* short tweets
-* emojis
-* punctuation
-* capitalization
-* hashtags
-
-### Replaced or repaired
-
-* URLs → `<URL>`
-* user mentions → `<USER>`
-* emails → `<EMAIL>`
-* Chilean RUT patterns → `<RUT>`
-* phone numbers → `<PHONE>`
-* malformed HTML
-* mojibake / encoding corruption
-* excessive whitespace
-* exact duplicates
-
-Text is **not lowercased**, accent marks are preserved, and informal spelling is not automatically corrected.
-
----
-
-## Encoding Repair
-
-Initial experiments with `ftfy.fix_text()` modified an unexpectedly large fraction of the corpus.
-
-A more conservative approach using `ftfy.fix_encoding()` was therefore adopted.
-
-Observed encoding repair rates:
-
-| Source     | Documents repaired |
-| ---------- | -----------------: |
-| mC4        |              ~3.1% |
-| News       |             ~0.05% |
-| Twitter    |                ~0% |
-| Complaints |                ~0% |
-
-Examples included genuine mojibake corrections such as:
-
-```text
-PiÃ±era   → Piñera
-PÃºblicos → Públicos
-chocÃ³    → chocó
-```
-
----
-
-## Cleaning Results
-
-The cleaning pipeline was tested on the 55,000-document EDA sample.
+On the 55K-document sample:
 
 ```text
 Original documents:   55,000
@@ -244,282 +155,203 @@ Final documents:      54,287
 Retention:             98.70%
 ```
 
-Retention by source:
-
-| Source     | Retention |
-| ---------- | --------: |
-| mC4        |    99.96% |
-| Complaints |    99.82% |
-| News       |    99.07% |
-| Twitter    |    96.99% |
-
-The high retention rate reflects the intentionally conservative cleaning policy.
+More detailed decisions and observations are documented in
+[`reports/Phase_1_Observations.md`](reports/Phase_1_Observations.md).
 
 ---
 
-## Estimated Corpus Token Budget
+## Tokenizer Analysis
 
-Token counts were estimated after cleaning using the Qwen2.5 tokenizer.
+The tokenizer used by `Qwen3-0.6B-Base` was evaluated across the four domains.
 
-| Source     | Estimated tokens | Token share |
-| ---------- | ---------------: | ----------: |
-| mC4        |            7.27B |      85.55% |
-| Twitter    |            0.72B |       8.44% |
-| News       |            0.51B |       5.96% |
-| Complaints |           0.004B |       0.05% |
+| Source | Mean tokens / word |
+|---|---:|
+| Complaints | 1.525 |
+| News | 1.653 |
+| mC4 | 1.922 |
+| Twitter | 2.598 |
 
-Estimated total:
+Twitter is considerably more fragmented than the other sources.
 
-```text
-~8.49 billion tokens
-```
+To test whether this was caused specifically by Chilean vocabulary, tweets containing Chilean-associated lexical markers were compared against tweets without them.
 
-This reveals an important property of the corpus:
+After neutralizing URLs, mentions and hashtags:
 
-> Twitter dominates the number of documents, but mC4 overwhelmingly dominates the number of training tokens.
+| Twitter group | Tokens / word |
+|---|---:|
+| Chilean markers | 1.948 |
+| No markers | 2.086 |
 
-Therefore, using the natural corpus distribution would mostly perform adaptation to Chilean web content rather than balanced Chilean Spanish adaptation.
+The experiment did not indicate that Chilean lexical items were responsible for the increased fragmentation.
 
----
-
-## Proposed CPT Mixture
-
-The initial CPT mixture is therefore defined in terms of **tokens**, not documents.
-
-| Source     | Target token share |
-| ---------- | -----------------: |
-| mC4        |                45% |
-| Twitter    |                35% |
-| News       |                19% |
-| Complaints |                 1% |
-
-This is an experimental mixture and may be revised based on validation results.
-
-The goal is to preserve:
-
-* broad Chilean web language through mC4,
-* informal and dialectal signal through Twitter,
-* formal language through news,
-* spontaneous user-generated language through complaints.
+The original Qwen3 tokenizer is therefore retained for CPT.
 
 ---
 
-## Training Plan
+## Token Budget and Training Mixture
 
-Two CPT stages are planned.
+The cleaned corpus is estimated at approximately **8.49B Qwen3 tokens**.
 
-### Pilot
+Its natural token distribution is highly imbalanced:
 
-```text
-50M tokens
+| Source | Estimated tokens | Natural share |
+|---|---:|---:|
+| mC4 | 7.27B | 85.55% |
+| Twitter | 0.72B | 8.44% |
+| News | 0.51B | 5.96% |
+| Complaints | 0.004B | 0.05% |
+
+Document counts are therefore not used to define the training mixture.
+
+The initial CPT mixture is:
+
+| Source | Training share |
+|---|---:|
+| mC4 | 45% |
+| Twitter | 35% |
+| News | 19% |
+| Complaints | 1% |
+
+This is an experimental mixture intended to retain broad web language, informal Chilean Spanish, formal writing and user-generated language.
+
+---
+
+## Phase 2 — Continual Pre-Training
+
+**Status: in progress**
+
+Phase 2 covers:
+
+- streaming training-data construction;
+- token-level source balancing;
+- sequence packing;
+- fixed evaluation-set creation;
+- base-model perplexity measurement;
+- GPU throughput and memory profiling;
+- full-parameter CPT;
+- Base-vs-CPT evaluation.
+
+The local experiments run on an **RTX 3070 with 8 GB of VRAM**, so the training configuration is intentionally small.
+
+Current configuration:
+
+```yaml
+model: Qwen/Qwen3-0.6B-Base
+sequence_length: 1024
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+optimizer: adamw_bnb_8bit
+gradient_checkpointing: true
+fp16: true
 ```
 
-Used to validate:
+The first training run is time-boxed to approximately **105 minutes**.
 
-* sequence packing
-* training stability
-* loss behavior
-* GPU memory usage
-* throughput
-* checkpointing
-* experiment tracking
+Up to 12M training tokens can be prepared, but the effective pilot size will be chosen after measuring real throughput during the GPU smoke test.
 
-### Main CPT
+---
 
-```text
-300M tokens
-```
+## Phase 3 — Post-Training
 
-Proposed allocation:
+**Status: planned**
 
-| Source     | Tokens |
-| ---------- | -----: |
-| mC4        |   135M |
-| Twitter    |   105M |
-| News       |    57M |
-| Complaints |     3M |
+After CPT, the project may be extended with:
 
-The complete ~8.5B-token corpus will not be trained in the initial experiment.
+- supervised fine-tuning;
+- instruction tuning;
+- preference/alignment experiments;
+- Chilean-specific evaluation tasks.
+
+The immediate priority is to finish and evaluate CPT before adding post-training stages.
+
+---
+
+## Evaluation
+
+The initial experiment will compare:
+
+- `Qwen3-0.6B-Base`
+- the Chilean CPT checkpoint
+
+using the same held-out evaluation data.
+
+Initial metrics:
+
+- cross-entropy loss;
+- perplexity;
+- aggregate evaluation loss;
+- source-level evaluation.
+
+Source-level results are important because an aggregate improvement could hide degradation in individual domains.
 
 ---
 
 ## Repository Structure
 
 ```text
-chileanlm-lab/
-│
+ChileanLLM/
 ├── configs/
 │   └── cpt_data.yaml
-│
-├── data/
-│   ├── raw/
-│   ├── interim/
-│   ├── processed/
-│   └── evaluation/
-│
-├── notebooks/
-│
 ├── reports/
-│   ├── figures/
+│   ├── Phase_1_Observations.md
 │   ├── quality_audit.csv
 │   ├── chilean_markers_by_source.csv
 │   ├── tokenizer_by_source.csv
 │   ├── chilean_tokenization.csv
 │   ├── cleaning_sample_summary.csv
-│   └── token_budget_estimate.csv
-│
+│   ├── token_budget_estimate.csv
+│   └── cpt_mixture_plan.csv
 ├── src/
 │   ├── data/
-│   │   ├── inspect_dataset.py
-│   │   ├── inspect_sources.py
-│   │   ├── create_eda_sample.py
-│   │   ├── profile_dataset.py
-│   │   ├── audit_sample.py
-│   │   ├── inspect_samples.py
-│   │   ├── inspect_chilean_markers.py
-│   │   ├── inspect_encoding_repairs.py
-│   │   ├── analyze_tokenizer.py
-│   │   ├── analyze_chilean_tokenization.py
-│   │   ├── clean_sample.py
-│   │   └── estimate_token_budget.py
-│   │
 │   ├── training/
 │   └── evaluation/
-│
-├── tests/
-├── README.md
 ├── requirements.txt
-└── .gitignore
+└── README.md
 ```
 
-Large datasets and model checkpoints are intentionally excluded from Git.
+Datasets, model checkpoints and experiment artifacts are not committed to the repository.
 
 ---
 
-## Environment
-
-Tested using:
-
-```text
-WSL2
-Ubuntu
-Python 3.12
-PyTorch
-Transformers
-Datasets
-PyArrow
-pandas
-ftfy
-```
-
-Create the environment:
+## Reproducing Phase 1
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
-```
-
-Authenticate with Hugging Face:
-
-```bash
 hf auth login
 ```
 
-The Chilean Spanish Corpus is gated and requires access through Hugging Face.
+The dataset is gated and requires access through Hugging Face.
 
----
-
-## Reproducing Phase 1
-
-The main analysis pipeline can be reproduced with:
+Run the analysis pipeline with:
 
 ```bash
 python -m src.data.inspect_dataset
-
 python -m src.data.create_eda_sample
-
 python -m src.data.profile_dataset
-
 python -m src.data.audit_sample
-
 python -m src.data.analyze_tokenizer
-
 python -m src.data.analyze_chilean_tokenization
-
 python -m src.data.inspect_encoding_repairs
-
 python -m src.data.clean_sample
-
 python -m src.data.estimate_token_budget
+python -m src.data.plan_cpt_mixture
 ```
 
-Intermediate Parquet files are generated locally and are not committed to Git.
-
 ---
 
-## Data Governance and Limitations
+## Limitations
 
-Several limitations must be considered:
+- Training is currently limited to a single consumer GPU.
+- The original corpus is strongly imbalanced across domains.
+- PII detection is heuristic and cannot guarantee complete anonymization.
+- Token-budget estimates are extrapolated from controlled samples.
+- Chilean lexical markers are exploratory signals, not a dialect classifier.
+- Twitter overrepresents informal and online communication.
+- `.cl` web content does not necessarily imply Chilean linguistic features.
+- Perplexity measures language-model fit but does not by itself measure cultural or linguistic quality.
+- Dataset licensing and copyright restrictions must be considered before distributing derived artifacts.
 
-* The dataset is strongly imbalanced by source.
-* `.cl` web domains do not guarantee that every document represents Chilean dialect.
-* Lexical markers are exploratory heuristics and are not a dialect classifier.
-* Twitter language may overrepresent informal and online communication.
-* News and web sources represent different linguistic registers.
-* User-generated complaints may contain personally identifiable information.
-* Regex-based PII detection cannot guarantee complete anonymization.
-* Estimated token counts are extrapolated from a stratified sample rather than a complete corpus tokenization.
-* Copyright and licensing constraints of upstream sources must be respected when distributing derived datasets or trained models.
-
----
-
-## Current Status
-
-### Phase 1 — Data Preparation
-
-* [x] Environment setup
-* [x] Dataset streaming
-* [x] Stratified EDA
-* [x] Quality profiling
-* [x] PII analysis
-* [x] Chilean lexical analysis
-* [x] Qwen tokenizer analysis
-* [x] Encoding repair
-* [x] Conservative cleaning pipeline
-* [x] Token-budget estimation
-* [x] Initial CPT mixture design
-
-### Phase 2 — Continual Pre-Training
-
-* [ ] Build streaming training dataset
-* [ ] Tokenize and pack sequences
-* [ ] Establish baseline perplexity
-* [ ] Run 50M-token pilot
-* [ ] Analyze training dynamics
-* [ ] Run main CPT experiment
-* [ ] Compare Base vs CPT
-
-### Phase 3 — Post-Training and Evaluation
-
-Planned for later stages of the project.
-
----
-
-## Motivation
-
-This project is designed as an end-to-end experiment in language-model adaptation rather than a simple fine-tuning exercise.
-
-It covers:
-
-* large-scale dataset streaming,
-* corpus analysis,
-* data-quality diagnostics,
-* linguistic analysis,
-* tokenization analysis,
-* privacy-aware preprocessing,
-* domain mixture design,
-* continual pre-training,
-* evaluation,
-* and reproducible ML experimentation.
+The local experiment is intentionally small. The expected result is not a production-ready Chilean LLM, but evidence about whether a controlled CPT run produces a measurable adaptation signal and a reproducible implementation of the pipeline.
