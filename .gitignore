@@ -27,3 +27,6 @@ wandb/
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+data/evaluation/*

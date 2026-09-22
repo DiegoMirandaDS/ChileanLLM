@@ -36,7 +36,7 @@ training:
 
   gradient_checkpointing: true
 
-  fp16: true
+  bf16: true
 
 smoke_test:
   target_tokens: 262144
@@ -53,3 +53,6 @@ sources:
 
   complaints:
     estimated_tokens_per_document: 140.337007
+
+evaluation:
+  blocks_per_source: 64

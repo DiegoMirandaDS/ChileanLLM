@@ -1,0 +1,29 @@
+{
+  "model": "Qwen/Qwen3-0.6B-Base",
+  "blocks": 256,
+  "tokens": 262144,
+  "loss": 3.2714325422421098,
+  "perplexity": 26.34905845898438,
+  "by_source": {
+    "complaints": {
+      "blocks": 64,
+      "loss": 3.4641908444464207,
+      "perplexity": 31.950596308315536
+    },
+    "mc4": {
+      "blocks": 64,
+      "loss": 2.6319632828235626,
+      "perplexity": 13.901034791864005
+    },
+    "news": {
+      "blocks": 64,
+      "loss": 2.811590723693371,
+      "perplexity": 16.636361035273715
+    },
+    "twitter": {
+      "blocks": 64,
+      "loss": 4.177985318005085,
+      "perplexity": 65.23429437556808
+    }
+  }
+}

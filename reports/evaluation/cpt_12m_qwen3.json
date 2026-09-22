@@ -1,0 +1,29 @@
+{
+  "model": "checkpoints/qwen3_chilean_cpt",
+  "blocks": 256,
+  "tokens": 262144,
+  "loss": 3.0105320108123124,
+  "perplexity": 20.298195912891305,
+  "by_source": {
+    "complaints": {
+      "blocks": 64,
+      "loss": 3.342607144266367,
+      "perplexity": 28.292794028742694
+    },
+    "mc4": {
+      "blocks": 64,
+      "loss": 2.5553596075624228,
+      "perplexity": 12.875929106559752
+    },
+    "news": {
+      "blocks": 64,
+      "loss": 2.6690195761621,
+      "perplexity": 14.425818840592504
+    },
+    "twitter": {
+      "blocks": 64,
+      "loss": 3.47514171525836,
+      "perplexity": 32.30240595606364
+    }
+  }
+}
