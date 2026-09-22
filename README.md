@@ -337,3 +337,15 @@ A larger run would be treated as a scaling experiment rather than replacing the 
 - Dataset licensing and copyright restrictions must be considered before distributing derived artifacts.
 
 The goal of the project is a reproducible adaptation experiment and practical LLM-training pipeline, not a production-ready Chilean language model.
+
+## License
+
+The source code in this repository is licensed under the
+[Apache License 2.0](LICENSE).
+
+The training dataset is not included in this repository.
+`jorgeortizfuentes/chilean-spanish-corpus` is distributed separately under
+CC BY-SA 4.0 and remains subject to its original licensing and access terms.
+
+See [DATA_LICENSE.md](DATA_LICENSE.md) for dataset provenance and licensing
+details.
